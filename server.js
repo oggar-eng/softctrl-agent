@@ -104,4 +104,35 @@ app.post("/run", async (req, res) => {
   }
 });
 
+// New route for ChatGPT access
+app.post("/chatgpt", async (req, res) => {
+  const key = req.headers["x-chatgpt-key"];
+  if (key !== process.env.CHATGPT_KEY) {
+    return res.status(403).send("Forbidden: invalid chatgpt key");
+  }
+
+  const { action, name, title, content } = req.body || {};
+  const payload = {
+    secret: process.env.SOFTCTRL_SECRET,
+    cmd: (action || "").toLowerCase(),
+    name,
+    title,
+    content
+  };
+
+  try {
+    const response = await fetch(process.env.WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await response.text();
+    res.type("text/plain").send(text);
+  } catch (e) {
+    res.status(500).send("Error: " + (e.message || e));
+  }
+});
+
 app.listen(PORT, () => console.log("SoftControl cloud agent running on port " + PORT));
+
